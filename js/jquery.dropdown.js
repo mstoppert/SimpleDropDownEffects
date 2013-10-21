@@ -19,6 +19,8 @@
 
 	// the options
 	$.DropDown.defaults = {
+		// remove the active option from selection, so it isnt displayed twice
+		removeActive: false,
 		speed : 300,
 		easing : 'ease',
 		gutter : 0,
@@ -42,6 +44,10 @@
 
 			// options
 			this.options = $.extend( true, {}, $.DropDown.defaults, options );
+			if(this.options.removeActive) {
+				this.options.active = null;
+				this.options.first = true;
+			}
 			this._layout();
 			this._initEvents();
 
@@ -54,12 +60,12 @@
 			this.opts = this.listopts.children( 'li' );
 			this.optsCount = this.opts.length;
 			this.size = { width : this.dd.width(), height : this.dd.height() };
-			
+
 			var elName = this.$el.attr( 'name' ), elId = this.$el.attr( 'id' ),
 				inputName = elName !== undefined ? elName : elId !== undefined ? elId : 'cd-dropdown-' + ( new Date() ).getTime();
 
 			this.inputEl = $( '<input type="hidden" name="' + inputName + '" value="' + value + '"></input>' ).insertAfter( this.selectlabel );
-			
+
 			this.selectlabel.css( 'z-index', this.minZIndex + this.optsCount );
 			this._positionOpts();
 			if( Modernizr.csstransitions ) {
@@ -79,8 +85,8 @@
 					label = $this.text();
 
 				if( val !== -1 ) {
-					optshtml += 
-						classes !== undefined ? 
+					optshtml +=
+						classes !== undefined ?
 							'<li data-value="' + val + '"><span class="' + classes + '">' + label + '</span></li>' :
 							'<li data-value="' + val + '"><span>' + label + '</span></li>';
 				}
@@ -131,9 +137,9 @@
 
 		},
 		_initEvents : function() {
-			
+
 			var self = this;
-			
+
 			this.selectlabel.on( 'mousedown.dropdown', function( event ) {
 				self.opened ? self.close() : self.open();
 				return false;
@@ -147,19 +153,33 @@
 					self.inputEl.val( opt.data( 'value' ) );
 					self.selectlabel.html( opt.html() );
 					self.close();
+					if(self.options.removeActive) {
+						if(self.options.active != null) {
+							self.options.active.appendTo(opt.parent());
+						}
+						self.options.active = opt.detach();
+					}
 				}
 			} );
 
 		},
 		open : function() {
 			var self = this;
+			var inc = 1;
 			this.dd.toggleClass( 'cd-active' );
 			this.listopts.css( 'height', ( this.optsCount + 1 ) * ( this.size.height + this.options.gutter ) );
-			this.opts.each( function( i ) {
 
+			this.opts.each( function( i ) {
+				if(self.options.removeActive) {
+					if(self.options.first && $(this).data('value') == self.inputEl.val()) {
+						self.options.first = false;
+						self.options.active = $(this).detach();
+					}
+					if($(this).is(':hidden')) inc = 0;
+				}
 				$( this ).css( {
 					opacity : 1,
-					top : self.options.rotated ? self.size.height + self.options.gutter : ( i + 1 ) * ( self.size.height + self.options.gutter ),
+					top : self.options.rotated ? self.size.height + self.options.gutter : ( i + inc ) * ( self.size.height + self.options.gutter ),
 					left : self.options.random ? Math.floor( Math.random() * 11 - 5 ) : 0,
 					width : self.size.width,
 					marginLeft : 0,
